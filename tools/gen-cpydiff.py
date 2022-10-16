@@ -75,8 +75,7 @@ Output = namedtuple(
 
 def readfiles():
     """Reads test files"""
-    tests = list(filter(lambda x: x.endswith(".py"), os.listdir(TESTPATH)))
-    tests.sort()
+    tests = sorted(filter(lambda x: x.endswith(".py"), os.listdir(TESTPATH)))
     files = []
 
     for test in tests:
@@ -89,7 +88,7 @@ def readfiles():
             output = Output(test, class_, desc, cause, workaround, code, "", "", "")
             files.append(output)
         except IndexError:
-            print("Incorrect format in file " + TESTPATH + test)
+            print(f"Incorrect format in file {TESTPATH}{test}")
 
     return files
 
@@ -153,10 +152,7 @@ def run_tests(tests):
 
 def indent(block, spaces):
     """indents paragraphs of text for rst formatting"""
-    new_block = ""
-    for line in block.split("\n"):
-        new_block += spaces + line + "\n"
-    return new_block
+    return "".join(spaces + line + "\n" for line in block.split("\n"))
 
 
 def gen_table(contents):
@@ -183,11 +179,9 @@ def gen_table(contents):
         row = [entry + "\n" * (ylengths[i] - len(entry.split("\n"))) for entry in row]
         row = [entry.split("\n") for entry in row]
         for j in range(ylengths[i]):
-            k = 0
-            for entry in row:
+            for k, entry in enumerate(row):
                 width = xlengths[k]
                 table += "".join(["| {:{}}".format(entry[j], width - 1)])
-                k += 1
             table += "|\n"
         table += table_divider
     return table + "\n"
@@ -200,7 +194,7 @@ def gen_rst(results):
     try:
         os.mkdir(DOCPATH)
     except OSError as e:
-        if e.args[0] != errno.EEXIST and e.args[0] != errno.EISDIR:
+        if e.args[0] not in [errno.EEXIST, errno.EISDIR]:
             raise
 
     toctree = []
@@ -229,14 +223,14 @@ def gen_rst(results):
         rst.write(output.desc + "\n")
         rst.write("~" * len(output.desc) + "\n\n")
         if output.cause != "Unknown":
-            rst.write("**Cause:** " + output.cause + "\n\n")
+            rst.write(f"**Cause:** {output.cause}" + "\n\n")
         if output.workaround != "Unknown":
-            rst.write("**Workaround:** " + output.workaround + "\n\n")
+            rst.write(f"**Workaround:** {output.workaround}" + "\n\n")
 
         rst.write("Sample code::\n\n" + indent(output.code, TAB) + "\n")
-        output_cpy = indent("".join(output.output_cpy[0:2]), TAB).rstrip()
+        output_cpy = indent("".join(output.output_cpy[:2]), TAB).rstrip()
         output_cpy = ("::\n\n" if output_cpy != "" else "") + output_cpy
-        output_upy = indent("".join(output.output_upy[0:2]), TAB).rstrip()
+        output_upy = indent("".join(output.output_upy[:2]), TAB).rstrip()
         output_upy = ("::\n\n" if output_upy != "" else "") + output_upy
         table = gen_table([["CPy output:", output_cpy], ["uPy output:", output_upy]])
         rst.write(table)
@@ -247,10 +241,10 @@ def gen_rst(results):
     index.write(template.read())
     for section in INDEXPRIORITY:
         if section in toctree:
-            index.write(indent(section + ".rst", TAB))
+            index.write(indent(f"{section}.rst", TAB))
             toctree.remove(section)
     for section in toctree:
-        index.write(indent(section + ".rst", TAB))
+        index.write(indent(f"{section}.rst", TAB))
 
 
 def main():

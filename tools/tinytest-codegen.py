@@ -16,7 +16,7 @@ def escape(s):
         "\\": "\\\\",
         '"': '\\"',
     }
-    return '""\n"{}"'.format("".join([lookup[x] if x in lookup else x for x in s]))
+    return f'""\n"{"".join([lookup.get(x, x) for x in s])}"'
 
 
 def chew_filename(t):
@@ -27,7 +27,7 @@ def script_to_map(test_file):
     r = {"name": chew_filename(test_file)["func"]}
     with open(test_file, "rb") as f:
         r["script"] = escape(f.read())
-    with open(test_file + ".exp", "rb") as f:
+    with open(f"{test_file}.exp", "rb") as f:
         r["output"] = escape(f.read())
     return r
 
@@ -101,7 +101,6 @@ exclude_tests = (
     "misc/sys_settrace_features.py",
 )
 
-output = []
 tests = []
 
 argparser = argparse.ArgumentParser(
@@ -111,16 +110,14 @@ argparser.add_argument("--stdin", action="store_true", help="read list of tests 
 argparser.add_argument("--exclude", action="append", help="exclude test by name")
 args = argparser.parse_args()
 
-if not args.stdin:
+if args.stdin:
+    tests.extend(l.rstrip() for l in sys.stdin)
+else:
     if args.exclude:
         exclude_tests += tuple(args.exclude)
     for group in test_dirs:
-        tests += [test for test in glob("{}/*.py".format(group)) if test not in exclude_tests]
-else:
-    for l in sys.stdin:
-        tests.append(l.rstrip())
-
-output.extend([test_function.format(**script_to_map(test)) for test in tests])
+        tests += [test for test in glob(f"{group}/*.py") if test not in exclude_tests]
+output = [test_function.format(**script_to_map(test)) for test in tests]
 testcase_members = [testcase_member.format(**chew_filename(test)) for test in tests]
 output.append(testcase_struct.format(name="", body="\n".join(testcase_members)))
 

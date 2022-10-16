@@ -38,10 +38,7 @@ def parse(file, dump_images=False):
             "<6sBI255s2I", data, "signature altsetting named name size elements"
         )
         tprefix["num"] = t
-        if tprefix["named"]:
-            tprefix["name"] = cstring(tprefix["name"])
-        else:
-            tprefix["name"] = ""
+        tprefix["name"] = cstring(tprefix["name"]) if tprefix["named"] else ""
         print(
             '%(signature)s %(num)d, alt setting: %(altsetting)s, name: "%(name)s", size: %(size)d, elements: %(elements)d'
             % tprefix
@@ -79,7 +76,7 @@ def build(file, targets, device=DEFAULT_DEVICE):
         for image in target:
             # pad image to 8 bytes (needed at least for L476)
             pad = (8 - len(image["data"]) % 8) % 8
-            image["data"] = image["data"] + bytes(bytearray(8)[0:pad])
+            image["data"] = image["data"] + bytes(bytearray(8)[:pad])
             #
             tdata += struct.pack("<2I", image["address"], len(image["data"])) + image["data"]
         tdata = (
@@ -112,9 +109,10 @@ if __name__ == "__main__":
         "--device",
         action="store",
         dest="device",
-        help="build for DEVICE, defaults to %s" % DEFAULT_DEVICE,
+        help=f"build for DEVICE, defaults to {DEFAULT_DEVICE}",
         metavar="DEVICE",
     )
+
     parser.add_option(
         "-d",
         "--dump",
@@ -136,16 +134,14 @@ if __name__ == "__main__":
             try:
                 address = int(address, 0) & 0xFFFFFFFF
             except ValueError:
-                print("Address %s invalid." % address)
+                print(f"Address {address} invalid.")
                 sys.exit(1)
             if not os.path.isfile(binfile):
                 print("Unreadable file '%s'." % binfile)
                 sys.exit(1)
             target.append({"address": address, "data": open(binfile, "rb").read()})
         outfile = args[0]
-        device = DEFAULT_DEVICE
-        if options.device:
-            device = options.device
+        device = options.device or DEFAULT_DEVICE
         try:
             v, d = map(lambda x: int(x, 0) & 0xFFFF, device.split(":", 1))
         except:
