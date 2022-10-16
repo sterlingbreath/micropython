@@ -23,19 +23,13 @@ FLASH_KEY2 = 0xCDEF89AB
 def check_mem_contains(addr, buf):
     mem8 = stm.mem8
     r = range(len(buf))
-    for off in r:
-        if mem8[addr + off] != buf[off]:
-            return False
-    return True
+    return all(mem8[addr + off] == buf[off] for off in r)
 
 
 def check_mem_erased(addr, size):
     mem16 = stm.mem16
     r = range(0, size, 2)
-    for off in r:
-        if mem16[addr + off] != 0xFFFF:
-            return False
-    return True
+    return all(mem16[addr + off] == 0xFFFF for off in r)
 
 
 def dfu_read(filename):
@@ -58,13 +52,13 @@ def dfu_read(filename):
 
     file_offset = 11
 
-    for i in range(num_targ):
+    for _ in range(num_targ):
         hdr = f.read(274)
         sig, alt, has_name, name, t_size, num_elem = struct.unpack("<6sBi255sII", hdr)
 
         file_offset += 274
         file_offset_t = file_offset
-        for j in range(num_elem):
+        for _ in range(num_elem):
             hdr = f.read(8)
             addr, e_size = struct.unpack("<II", hdr)
             data = f.read(e_size)
@@ -136,8 +130,7 @@ def update_mboot(filename):
 
     print("Found Mboot data with size %u." % len(mboot_fw))
 
-    chk = check_mem_contains(mboot_addr, mboot_fw)
-    if chk:
+    if chk := check_mem_contains(mboot_addr, mboot_fw):
         print("Supplied version of Mboot is already on device.")
         return
 

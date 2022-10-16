@@ -14,7 +14,7 @@ msg = str(OSError(uerrno.EIO))
 print(msg[:7], msg[-5:])
 
 # check that unknown errno is still rendered
-print(str(OSError(9999)))
+print(OSError(9999))
 
 # this tests a failed constant lookup in errno
 errno = uerrno

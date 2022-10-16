@@ -134,11 +134,14 @@ def init(**kwargs):
                 break
 
     # Get device into idle state
-    for attempt in range(4):
+    for _ in range(4):
         status = get_status()
         if status == __DFU_STATE_DFU_IDLE:
             break
-        elif status == __DFU_STATE_DFU_DOWNLOAD_IDLE or status == __DFU_STATE_DFU_UPLOAD_IDLE:
+        elif status in [
+            __DFU_STATE_DFU_DOWNLOAD_IDLE,
+            __DFU_STATE_DFU_UPLOAD_IDLE,
+        ]:
             abort_request()
         else:
             clr_status()
@@ -160,8 +163,7 @@ def get_status():
 
     # firmware can provide an optional string for any error
     if stat[5]:
-        message = get_string(__dev, stat[5])
-        if message:
+        if message := get_string(__dev, stat[5]):
             print(message)
 
     return stat[4]
@@ -170,7 +172,9 @@ def get_status():
 def check_status(stage, expected):
     status = get_status()
     if status != expected:
-        raise SystemExit("DFU: %s failed (%s)" % (stage, __DFU_STATUS_STR.get(status, status)))
+        raise SystemExit(
+            f"DFU: {stage} failed ({__DFU_STATUS_STR.get(status, status)})"
+        )
 
 
 def mass_erase():
@@ -329,7 +333,7 @@ def read_dfu_file(filename):
     If an error occurs while parsing the file, then None is returned.
     """
 
-    print("File: {}".format(filename))
+    print(f"File: {filename}")
     with open(filename, "rb") as fin:
         data = fin.read()
     crc = compute_crc(data[:-4])
@@ -363,10 +367,7 @@ def read_dfu_file(filename):
             "<6sBI255s2I", data, "signature altsetting named name " "size elements"
         )
         img_prefix["num"] = target_idx
-        if img_prefix["named"]:
-            img_prefix["name"] = cstring(img_prefix["name"])
-        else:
-            img_prefix["name"] = ""
+        img_prefix["name"] = cstring(img_prefix["name"]) if img_prefix["named"] else ""
         print(
             "    %(signature)s %(num)d, alt setting: %(altsetting)s, "
             'name: "%(name)s", size: %(size)d, elements: %(elements)d' % img_prefix
@@ -470,7 +471,7 @@ def get_memory_layout(device):
             multiplier = seg_match.groups()[2]
             if multiplier == "K":
                 page_size *= 1024
-            if multiplier == "M":
+            elif multiplier == "M":
                 page_size *= 1024 * 1024
             size = num_pages * page_size
             last_addr = addr + size - 1

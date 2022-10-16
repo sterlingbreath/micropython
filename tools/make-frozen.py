@@ -34,7 +34,7 @@ if len(sys.argv) > 1:
 
     for dirpath, dirnames, filenames in os.walk(root):
         for f in filenames:
-            fullpath = dirpath + "/" + f
+            fullpath = f"{dirpath}/{f}"
             st = os.stat(fullpath)
             modules.append((fullpath[root_len + 1 :], st))
 
@@ -54,7 +54,7 @@ print("0};")
 
 print("const char mp_frozen_str_content[] = {")
 for f, st in modules:
-    data = open(sys.argv[1] + "/" + f, "rb").read()
+    data = open(f"{sys.argv[1]}/{f}", "rb").read()
 
     # We need to properly escape the script data to create a C string.
     # When C parses hex characters of the form \x00 it keeps parsing the hex
